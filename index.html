@@ -13,39 +13,26 @@
     <button id="toggleTheme">Toggle Dark/Light Mode</button>
   </header>
 
-  <section class="recommendations">
-    <ul id="moviesGrid" class="movie-grid"></ul>
+  <!-- Search Section -->
+  <section class="search-section">
+    <div class="search-box">
+      <input type="text" id="searchInput" placeholder="Search movies...">
+      <button id="searchBtn">🔍</button>
+    </div>
   </section>
 
-  <!-- Modal -->
-  <div id="movieModal" class="modal">
+  <!-- Movies Grid -->
+  <section class="recommendations">
+    <div id="moviesGrid" class="movie-grid"></div>
+  </section>
+
+  <!-- Login Modal -->
+  <div id="loginModal" class="modal">
     <div class="modal-content">
-      <span class="close-btn">&times;</span>
-      <span class="nav-arrow left-arrow">&#10094;</span>
-      <span class="nav-arrow right-arrow">&#10095;</span>
-
-      <div class="modal-left">
-        <div id="trailerContainer" class="trailer-container"></div>
-      </div>
-      <div class="modal-right">
-        <h2 id="modalTitle"></h2>
-        <p id="modalRating"></p>
-        <p id="modalOverview"></p>
-
-        <div id="userSection">
-          <h3>Leave a Review</h3>
-          <div id="loginForm">
-            <input type="text" id="username" placeholder="Enter your name">
-            <button id="loginBtn">Login</button>
-          </div>
-          <div id="reviewForm" style="display:none;">
-            <textarea id="reviewText" placeholder="Write your review"></textarea>
-            <input type="number" id="reviewRating" placeholder="Rating (0-10)" min="0" max="10">
-            <button id="submitReview">Submit Review</button>
-          </div>
-          <ul id="reviewsList"></ul>
-        </div>
-      </div>
+      <span id="closeModal" class="close">&times;</span>
+      <h2>Login / Register</h2>
+      <input type="text" id="username" placeholder="Enter username">
+      <button id="loginBtn">Login</button>
     </div>
   </div>
 
