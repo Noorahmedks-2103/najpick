@@ -1,90 +1,96 @@
-let currentIndex = 0;
-let currentUser = null;
-const reviewsDB = {};
 const moviesGrid = document.getElementById("moviesGrid");
+const searchInput = document.getElementById("searchInput");
+const searchBtn = document.getElementById("searchBtn");
 const toggleThemeBtn = document.getElementById("toggleTheme");
 
-// Dark/light toggle
-toggleThemeBtn.addEventListener("click", () => {
+// Login
+const loginModal = document.getElementById("loginModal");
+const closeModal = document.getElementById("closeModal");
+const loginBtn = document.getElementById("loginBtn");
+let currentUser = localStorage.getItem("najpickUser") || null;
+
+if(!currentUser) loginModal.style.display = "flex";
+closeModal.onclick = () => loginModal.style.display = "none";
+loginBtn.onclick = () => {
+  const username = document.getElementById("username").value.trim();
+  if(username){
+    currentUser = username;
+    localStorage.setItem("najpickUser", username);
+    loginModal.style.display = "none";
+    alert(`Welcome, ${currentUser}!`);
+    renderMovies(movies);
+  }
+};
+
+// Render movies
+function renderMovies(list){
+  moviesGrid.innerHTML = "";
+  if(list.length === 0){
+    moviesGrid.innerHTML = "<p style='text-align:center;'>No movies found.</p>";
+    return;
+  }
+
+  list.forEach(movie => {
+    const card = document.createElement("div");
+    card.className = "movie-card";
+
+    const reviews = JSON.parse(localStorage.getItem(`reviews_${movie.title}`)) || [];
+    const userReviewHTML = reviews.map(r=>`<p><strong>${r.user}:</strong> ${r.text}</p>`).join("");
+
+    const reviewSection = currentUser ? `
+      <div class="review-section">
+        <input type="text" placeholder="Write a review" class="reviewInput">
+        <button class="submitReviewBtn">Submit</button>
+        <div class="userReviews">${userReviewHTML}</div>
+      </div>` :
+      `<div class="userReviews">${userReviewHTML}</div>`;
+
+    card.innerHTML = `
+      <img src="${movie.poster}" alt="${movie.title}" onerror="this.src='https://via.placeholder.com/200x300?text=No+Image'">
+      <h3>${movie.title}</h3>
+      <p>⭐ ${movie.rating}</p>
+      <p>${movie.review}</p>
+      ${reviewSection}
+    `;
+
+    moviesGrid.appendChild(card);
+
+    if(currentUser){
+      const submitBtn = card.querySelector(".submitReviewBtn");
+      const input = card.querySelector(".reviewInput");
+      const userReviewsDiv = card.querySelector(".userReviews");
+
+      submitBtn.addEventListener("click", () => {
+        const text = input.value.trim();
+        if(text){
+          const newReview = {user: currentUser, text};
+          reviews.push(newReview);
+          localStorage.setItem(`reviews_${movie.title}`, JSON.stringify(reviews));
+          userReviewsDiv.innerHTML = reviews.map(r=>`<p><strong>${r.user}:</strong> ${r.text}</p>`).join("");
+          input.value = "";
+        }
+      });
+    }
+  });
+}
+
+// Initial render
+renderMovies(movies);
+
+// Dark/Light toggle
+toggleThemeBtn.addEventListener("click", ()=>{
   document.body.classList.toggle("light");
-  localStorage.setItem("theme", document.body.classList.contains("light") ? "light" : "dark");
+  localStorage.setItem("theme", document.body.classList.contains("light")?"light":"dark");
 });
 if(localStorage.getItem("theme")==="light") document.body.classList.add("light");
 
-// Render movie grid
-function renderGrid() {
-  moviesGrid.innerHTML="";
-  movies.forEach((movie, index)=>{
-    const card = document.createElement("div");
-    card.className="movie-card";
-    card.innerHTML=`
-      <img src="https://image.tmdb.org/t/p/w500${movie.poster_path}" alt="${movie.title}">
-      <h3>${movie.title}</h3>
-      <p>⭐ ${movie.vote_average}</p>
-    `;
-    card.addEventListener("click",()=>openModal(movie,index));
-    moviesGrid.appendChild(card);
-  });
+// Search function
+function searchMovies(){
+  const term = searchInput.value.toLowerCase().trim();
+  const filtered = movies.filter(m=>m.title.toLowerCase().includes(term));
+  renderMovies(filtered);
 }
-renderGrid();
-
-// Open modal
-function openModal(movie,index){
-  currentIndex=index;
-  document.getElementById("modalTitle").textContent=movie.title;
-  document.getElementById("modalRating").textContent=`⭐ ${movie.vote_average}`;
-  document.getElementById("modalOverview").textContent=movie.overview;
-
-  fetchTrailer(movie.id);
-  renderReviews(currentIndex);
-  document.getElementById("movieModal").style.display="flex";
-}
-
-// Fetch trailer (poster fallback)
-function fetchTrailer(movieId){
-  const movie=movies.find(m=>m.id===movieId);
-  const trailerContainer=document.getElementById("trailerContainer");
-  trailerContainer.innerHTML=`<img src="https://image.tmdb.org/t/p/w500${movie.poster_path}" style="width:100%;border-radius:8px;">`;
-}
-
-// Close modal
-document.querySelector(".close-btn").addEventListener("click",()=>{
-  document.getElementById("movieModal").style.display="none";
-  document.getElementById("trailerContainer").innerHTML="";
+searchBtn.addEventListener("click", searchMovies);
+searchInput.addEventListener("keypress", e=>{
+  if(e.key==="Enter"){ e.preventDefault(); searchMovies(); }
 });
-
-// Navigation arrows
-document.querySelector(".left-arrow").addEventListener("click",()=>openModal(movies[(currentIndex-1+movies.length)%movies.length],(currentIndex-1+movies.length)%movies.length));
-document.querySelector(".right-arrow").addEventListener("click",()=>openModal(movies[(currentIndex+1)%movies.length],(currentIndex+1)%movies.length));
-
-// Keyboard support
-document.addEventListener("keydown",(e)=>{
-  if(document.getElementById("movieModal").style.display==="flex"){
-    if(e.key==="ArrowRight") openModal(movies[(currentIndex+1)%movies.length],(currentIndex+1)%movies.length);
-    if(e.key==="ArrowLeft") openModal(movies[(currentIndex-1+movies.length)%movies.length],(currentIndex-1+movies.length)%movies.length);
-    if(e.key==="Escape"){document.getElementById("movieModal").style.display="none";document.getElementById("trailerContainer").innerHTML="";}
-  }
-});
-
-// Login & Reviews
-document.getElementById("loginBtn").addEventListener("click",()=>{
-  const name=document.getElementById("username").value.trim();
-  if(name){currentUser=name;document.getElementById("loginForm").style.display="none";document.getElementById("reviewForm").style.display="block";}
-});
-
-document.getElementById("submitReview").addEventListener("click",()=>{
-  if(!currentUser)return alert("Please login first");
-  const reviewText=document.getElementById("reviewText").value.trim();
-  const reviewRating=document.getElementById("reviewRating").value;
-  if(!reviewText||!reviewRating)return alert("Please write review and rating");
-  if(!reviewsDB[currentIndex])reviewsDB[currentIndex]=[];
-  reviewsDB[currentIndex].push({user:currentUser,text:reviewText,rating:reviewRating});
-  document.getElementById("reviewText").value="";document.getElementById("reviewRating").value="";
-  renderReviews(currentIndex);
-});
-
-function renderReviews(index){
-  const list=document.getElementById("reviewsList");list.innerHTML="";
-  if(!reviewsDB[index]||reviewsDB[index].length===0){list.innerHTML="<li>No reviews yet.</li>";return;}
-  reviewsDB[index].forEach(r=>{const li=document.createElement("li");li.innerHTML=`<strong>${r.user}</strong>: ${r.text} (⭐ ${r.rating})`;list.appendChild(li);});
-}
